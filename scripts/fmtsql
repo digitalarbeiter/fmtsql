@@ -1,0 +1,77 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+#
+# Script reads SQL block from stdin (possibly within a Python """ string
+# construct), formats it (using sqlparse.format), and prints the formatted
+# SQL to stdout (in my preferred style).
+#
+# The script is intended to be invoked from within Vim on a visual selection,
+# and can handle two classic situations:
+#
+#     stmt = """select whatever from wherever
+#     join evenmore on my_arse """ + where_stmt
+#
+# and
+#     stmt = """
+#         select whatever from wherever
+#         join evenmore on my_arse
+#     """ + where_stmt
+#
+# The script will take care of the triplequotes, prefix ("stmt =") and
+# postfix (the "+ where_stmt" part) as well as the Python indentation,
+# so you can (in Vim) just Ctrl-V the statement and !fmtsql it right away.
+#
+# Limitations:
+#  * statements in single " or ' quotes are not supported.
+#  * multiple """ blocks cannot currently be handled.
+#  * the indentation of sqlparse on SELECT, GROUP BY and WHERE is ugly
+#
+
+import sys
+import sqlparse
+
+
+def main():
+    sql_statement = sys.stdin.read()
+
+    # figure out how deep the block is already indented
+    extra_indent = len(sql_statement) - len(sql_statement.lstrip(" "))
+
+    if '"""' in sql_statement:
+        parts = sql_statement.split('"""')
+        if len(parts) != 3:
+            # oh dear...
+            print("weird triplequotes: {}".format(len(parts)))
+            sys.exit(1)
+        # handle """all the sql""" case: split off and preserve prefix
+        # and postfix
+        prefix, sql_statement, postfix = [part.strip() for part in parts]
+        if prefix:
+            prefix = prefix + ' """'
+        if postfix:
+            postfix = '""" ' + postfix
+    else:
+        prefix = postfix = ""
+
+    formatted_sql = sqlparse.format(
+        sql_statement,
+        keyword_case="upper",
+        identifier_case="lower",
+        reindent=True,
+        indent_tabs=False,
+        indent_width=4,
+        indent_columns=True,
+        output_format="sql",
+    )
+
+    if prefix:
+        print(" " * extra_indent + prefix)
+    for line in formatted_sql.split("\n"):
+        if line:
+            print(" " * extra_indent + line)
+    if postfix:
+        print(" " * extra_indent + postfix)
+
+
+if __name__ == "__main__":
+    main()
