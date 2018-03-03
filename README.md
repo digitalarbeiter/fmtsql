@@ -23,4 +23,3 @@ postfix (the "+ wherei\_stmt" part) as well as the Python indentation.
 Limitations:
  * statements in single " or ' quotes are not supported.
  * multiple """ blocks cannot currently be handled.
- * the indentation of sqlparse on SELECT, GROUP BY and WHERE is ugly
